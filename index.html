@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentinel Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- PapaParse -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- Firebase (Compat version for simpler HTML/JS usage) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+</head>
+<body>
+  <!-- LOGIN PAGE -->
+  <section id="loginPage" class="page active">
+    <div class="login-wrapper">
+      <div class="login-card glass">
+        <div class="brand-row">
+          <div class="brand-icon">🛡️</div>
+          <div>
+            <h1>Sentinel Dashboard</h1>
+            <p>Smart Environmental Monitoring</p>
+          </div>
+        </div>
+
+        <h2>Login</h2>
+        <p class="sub-text">Access your real-time ESP32 monitoring panel</p>
+
+        <form id="loginForm" class="login-form">
+          <div class="input-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="Enter email" required />
+          </div>
+
+          <div class="input-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter password" required />
+          </div>
+
+          <button type="submit" class="btn btn-primary full-btn">Login</button>
+          <p id="authMessage" class="auth-message"></p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD PAGE -->
+  <section id="dashboardPage" class="page">
+    <!-- Header -->
+    <header class="topbar glass">
+      <div class="topbar-left">
+        <h1>Sentinel Dashboard</h1>
+        <span class="live-badge pulse" id="liveBadge">LIVE DATA</span>
+      </div>
+      <div class="topbar-right">
+        <button id="logoutBtn" class="btn btn-danger">Logout</button>
+      </div>
+    </header>
+
+    <main class="dashboard-container">
+      <section class="section-title-row">
+        <div>
+          <h2>Environmental Monitoring (ESP32)</h2>
+          <p>Real-time sensor data, anomaly detection, and pest insights</p>
+        </div>
+      </section>
+
+      <!-- Summary Cards -->
+      <section class="cards-grid">
+        <div class="card glass summary-card">
+          <div class="card-top">
+            <span class="card-icon">🌡️</span>
+            <span class="card-label">Temperature</span>
+          </div>
+          <div class="card-value" id="tempValue">-- °C</div>
+        </div>
+
+        <div class="card glass summary-card">
+          <div class="card-top">
+            <span class="card-icon">💧</span>
+            <span class="card-label">Humidity</span>
+          </div>
+          <div class="card-value" id="humidityValue">-- %</div>
+        </div>
+
+        <div class="card glass summary-card">
+          <div class="card-top">
+            <span class="card-icon">🧪</span>
+            <span class="card-label">Gas Status</span>
+          </div>
+          <div class="card-value" id="gasStatusValue">Safe</div>
+        </div>
+
+        <div class="card glass summary-card">
+          <div class="card-top">
+            <span class="card-icon">⚠️</span>
+            <span class="card-label">Anomaly Detection</span>
+          </div>
+          <div class="card-value" id="anomalyValue">Normal</div>
+        </div>
+
+        <div class="card glass summary-card">
+          <div class="card-top">
+            <span class="card-icon">🕒</span>
+            <span class="card-label">Last Update Time</span>
+          </div>
+          <div class="card-value small" id="lastUpdateValue">--</div>
+        </div>
+      </section>
+
+      <!-- Latest Pest Summary -->
+      <section class="cards-grid single-card">
+        <div class="card glass summary-card">
+          <div class="card-top">
+            <span class="card-icon">🐛</span>
+            <span class="card-label">Latest Pest Detection</span>
+          </div>
+          <div class="card-value small" id="latestPestValue">No CSV uploaded</div>
+        </div>
+      </section>
+
+      <!-- History Table -->
+      <section class="panel glass">
+        <div class="panel-header">
+          <h3>Environmental History</h3>
+          <span class="panel-badge">Realtime Database</span>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Temp (°C)</th>
+                <th>Humidity (%)</th>
+                <th>MQ7</th>
+                <th>MQ135</th>
+                <th>Gas</th>
+                <th>Anomaly</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <tr>
+                <td colspan="9" class="empty-row">No sensor history available</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Sensor Charts -->
+      <section class="panel glass">
+        <div class="panel-header">
+          <h3>Real-Time Graphs</h3>
+          <span class="panel-badge">Chart.js</span>
+        </div>
+
+        <div class="chart-grid">
+          <div class="chart-card glass-inner">
+            <h4>Temperature Over Time</h4>
+            <canvas id="tempChart"></canvas>
+          </div>
+
+          <div class="chart-card glass-inner">
+            <h4>Humidity Over Time</h4>
+            <canvas id="humidityChart"></canvas>
+          </div>
+
+          <div class="chart-card glass-inner">
+            <h4>MQ7 & MQ135 Comparison</h4>
+            <canvas id="gasChart"></canvas>
+          </div>
+
+          <div class="chart-card glass-inner">
+            <h4>Gas & Anomaly Summary</h4>
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- CSV Upload -->
+      <section class="panel glass">
+        <div class="panel-header">
+          <h3>Pest CSV Upload</h3>
+          <span class="panel-badge">PapaParse</span>
+        </div>
+
+        <div class="upload-row">
+          <input type="file" id="csvFileInput" accept=".csv" />
+          <button id="uploadCsvBtn" class="btn btn-primary">Upload CSV</button>
+        </div>
+        <p id="csvMessage" class="csv-message"></p>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Pest Name</th>
+                <th>Confidence (%)</th>
+                <th>Original Prediction</th>
+              </tr>
+            </thead>
+            <tbody id="pestTableBody">
+              <tr>
+                <td colspan="6" class="empty-row">Upload a CSV file to preview pest data</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Pest Charts -->
+      <section class="panel glass">
+        <div class="panel-header">
+          <h3>Pest Data Visualization</h3>
+          <span class="panel-badge">Auto Adaptive</span>
+        </div>
+
+        <div class="chart-grid">
+          <div class="chart-card glass-inner">
+            <h4>Pest Detection Frequency</h4>
+            <canvas id="pestFrequencyChart"></canvas>
+          </div>
+
+          <div class="chart-card glass-inner">
+            <h4>Pest Confidence Trend</h4>
+            <canvas id="pestConfidenceChart"></canvas>
+          </div>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
